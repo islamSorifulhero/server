@@ -1,4 +1,4 @@
-// Community Cleanliness Portal Server
+
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -7,12 +7,17 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// MongoDB Connection
-const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.fc5kt4o.mongodb.net/issues-DB?retryWrites=true&w=majority`;
+app.get("/", (req, res) => {
+    res.send("✅ Community Cleanliness Server is Running...");
+});
+
+// const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.fc5kt4o.mongodb.net/issues-DB?retryWrites=true&w=majority`;
+
+const uri = "mongodb+srv://assignmentDB:tqo11tGSPltR0fRg@cluster0.maurhd8.mongodb.net/?appName=Cluster0";
+
 
 const client = new MongoClient(uri, {
     serverApi: {
@@ -31,20 +36,18 @@ async function run() {
         const issuesCollection = db.collection("issues");
         const contributionsCollection = db.collection("contributions");
 
+        app.get("/api/issues", async (req, res) => {
+            const result = await issuesCollection.find().toArray();
+            res.send(result);
+        });
 
-
-
-        
 
     } catch (err) {
-        console.error("❌ Error:", err);
+        console.error("❌ MongoDB Error:", err);
     }
 }
 run().catch(console.dir);
 
-// ----------------------
-// Start Server
-// ----------------------
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
