@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -14,17 +13,9 @@ app.get("/", (req, res) => {
     res.send("✅ Community Cleanliness Server is Running...");
 });
 
-// const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.fc5kt4o.mongodb.net/issues-DB?retryWrites=true&w=majority`;
-
 const uri = "mongodb+srv://assignmentDB:tqo11tGSPltR0fRg@cluster0.maurhd8.mongodb.net/?appName=Cluster0";
-
-
 const client = new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-    },
+    serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
 });
 
 async function run() {
@@ -36,6 +27,7 @@ async function run() {
         const issuesCollection = db.collection("issues");
         const contributionsCollection = db.collection("contributions");
 
+        // ---------------------- Issues ----------------------
         app.get("/api/issues", async (req, res) => {
             const result = await issuesCollection.find().toArray();
             res.send(result);
@@ -46,6 +38,7 @@ async function run() {
             const result = await issuesCollection.findOne({ _id: new ObjectId(id) });
             res.send(result);
         });
+
         app.post("/api/issues", async (req, res) => {
             const issue = req.body;
             issue.date = new Date();
@@ -70,6 +63,7 @@ async function run() {
             res.send(result);
         });
 
+        // ---------------------- Contributions ----------------------
         app.post("/api/contributions", async (req, res) => {
             const contribution = req.body;
             contribution.date = new Date();
@@ -83,20 +77,24 @@ async function run() {
             res.send(result);
         });
 
+        // ✅ My Contributions by user email
         app.get("/api/my-contributions/:email", async (req, res) => {
             const email = req.params.email;
-            const result = await contributionsCollection.find({ email }).toArray();
-            res.send(result);
+            try {
+                const result = await contributionsCollection.find({ email }).toArray();
+                res.send(result);
+            } catch (err) {
+                res.status(500).send({ error: "Failed to fetch contributions" });
+            }
         });
-
-        
 
     } catch (err) {
         console.error("❌ MongoDB Error:", err);
     }
 }
+
 run().catch(console.dir);
 
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`🚀 Server running on port ${port}`);
 });
