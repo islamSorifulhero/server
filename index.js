@@ -64,6 +64,32 @@ async function run() {
             res.send(result);
         });
 
+        app.delete("/api/issues/:id", async (req, res) => {
+            const id = req.params.id;
+            const result = await issuesCollection.deleteOne({ _id: new ObjectId(id) });
+            res.send(result);
+        });
+
+        app.post("/api/contributions", async (req, res) => {
+            const contribution = req.body;
+            contribution.date = new Date();
+            const result = await contributionsCollection.insertOne(contribution);
+            res.send(result);
+        });
+
+        app.get("/api/contributions/:issueId", async (req, res) => {
+            const issueId = req.params.issueId;
+            const result = await contributionsCollection.find({ issueId }).toArray();
+            res.send(result);
+        });
+
+        app.get("/api/my-contributions/:email", async (req, res) => {
+            const email = req.params.email;
+            const result = await contributionsCollection.find({ email }).toArray();
+            res.send(result);
+        });
+
+        
 
     } catch (err) {
         console.error("❌ MongoDB Error:", err);
