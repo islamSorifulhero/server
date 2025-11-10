@@ -46,6 +46,23 @@ async function run() {
             const result = await issuesCollection.findOne({ _id: new ObjectId(id) });
             res.send(result);
         });
+        app.post("/api/issues", async (req, res) => {
+            const issue = req.body;
+            issue.date = new Date();
+            issue.status = "ongoing";
+            const result = await issuesCollection.insertOne(issue);
+            res.send(result);
+        });
+
+        app.put("/api/issues/:id", async (req, res) => {
+            const id = req.params.id;
+            const updateData = req.body;
+            const result = await issuesCollection.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: updateData }
+            );
+            res.send(result);
+        });
 
 
     } catch (err) {
