@@ -27,7 +27,8 @@ async function run() {
         const issuesCollection = db.collection("issues");
         const contributionsCollection = db.collection("contributions");
 
-        // ---------------------- Issues ----------------------
+
+        // Issues
         app.get("/api/issues", async (req, res) => {
             const result = await issuesCollection.find().toArray();
             res.send(result);
@@ -63,7 +64,7 @@ async function run() {
             res.send(result);
         });
 
-        // ---------------------- Contributions ----------------------
+        // Contributions 
         app.post("/api/contributions", async (req, res) => {
             const contribution = req.body;
             contribution.date = new Date();
@@ -77,7 +78,7 @@ async function run() {
             res.send(result);
         });
 
-        // ✅ My Contributions by user email
+        //  My Contributions by user email
         app.get("/api/my-contributions/:email", async (req, res) => {
             const email = req.params.email;
             try {
