@@ -27,20 +27,16 @@ async function run() {
         const issuesCollection = db.collection("issues");
         const contributionsCollection = db.collection("contributions");
 
-        // community impact
 app.get("/api/stats", async (req, res) => {
   try {
     const allIssues = await issuesCollection.find().toArray();
     const usersCollection = db.collection("users");
 
-    // users count
     const totalUsers = await usersCollection.estimatedDocumentCount();
 
-    // issues count
     const issuesResolved = allIssues.filter(issue => issue.status === "resolved").length;
     const issuesPending = allIssues.filter(issue => issue.status !== "resolved").length;
 
-    // response
     res.send({
       totalUsers,
       issuesResolved,
@@ -53,7 +49,6 @@ app.get("/api/stats", async (req, res) => {
 });
 
 
-        // Issues
         app.get("/api/issues", async (req, res) => {
             const result = await issuesCollection.find().toArray();
             res.send(result);
@@ -89,7 +84,6 @@ app.get("/api/stats", async (req, res) => {
             res.send(result);
         });
 
-        // Contributions 
         app.post("/api/contributions", async (req, res) => {
             const contribution = req.body;
             contribution.date = new Date();
@@ -103,7 +97,6 @@ app.get("/api/stats", async (req, res) => {
             res.send(result);
         });
 
-        //  My Contributions
         app.get("/api/my-contributions/:email", async (req, res) => {
             const email = req.params.email;
             try {
