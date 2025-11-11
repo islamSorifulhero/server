@@ -27,6 +27,31 @@ async function run() {
         const issuesCollection = db.collection("issues");
         const contributionsCollection = db.collection("contributions");
 
+        // community impact
+app.get("/api/stats", async (req, res) => {
+  try {
+    const allIssues = await issuesCollection.find().toArray();
+    const usersCollection = db.collection("users");
+
+    // users count
+    const totalUsers = await usersCollection.estimatedDocumentCount();
+
+    // issues count
+    const issuesResolved = allIssues.filter(issue => issue.status === "resolved").length;
+    const issuesPending = allIssues.filter(issue => issue.status !== "resolved").length;
+
+    // response
+    res.send({
+      totalUsers,
+      issuesResolved,
+      issuesPending
+    });
+  } catch (err) {
+    console.error("❌ Error fetching community stats:", err);
+    res.status(500).send({ message: "Failed to fetch community stats" });
+  }
+});
+
 
         // Issues
         app.get("/api/issues", async (req, res) => {
@@ -78,7 +103,7 @@ async function run() {
             res.send(result);
         });
 
-        //  My Contributions by user email
+        //  My Contributions
         app.get("/api/my-contributions/:email", async (req, res) => {
             const email = req.params.email;
             try {
