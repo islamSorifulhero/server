@@ -6,10 +6,12 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: ["http://localhost:5173", "https://animated-cat-0a19c2.netlify.app"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://animated-cat-0a19c2.netlify.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -28,23 +30,38 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // await client.connect();
     console.log("✅ MongoDB connected successfully");
 
     const db = client.db("issues-DB");
     const issuesCollection = db.collection("issues");
     const contributionsCollection = db.collection("contributions");
 
-
     app.get("/api/issues", async (req, res) => {
-      const result = await issuesCollection.find().toArray();
-      res.send(result);
+      try {
+        const limit = parseInt(req.query.limit) || 0;
+        const cursor = issuesCollection.find().sort({ date: -1 });
+        const issues = limit
+          ? await cursor.limit(limit).toArray()
+          : await cursor.toArray();
+        res.send(issues);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Error fetching issues" });
+      }
     });
 
     app.get("/api/issues/:id", async (req, res) => {
-      const id = req.params.id;
-      const result = await issuesCollection.findOne({ _id: new ObjectId(id) });
-      res.send(result);
+      try {
+        const id = req.params.id;
+        const result = await issuesCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!result)
+          return res.status(404).send({ message: "Issue not found" });
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching issue" });
+      }
     });
 
     app.post("/api/issues", async (req, res) => {
@@ -67,7 +84,9 @@ async function run() {
 
     app.delete("/api/issues/:id", async (req, res) => {
       const id = req.params.id;
-      const result = await issuesCollection.deleteOne({ _id: new ObjectId(id) });
+      const result = await issuesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
       res.send(result);
     });
 
@@ -85,14 +104,48 @@ async function run() {
     });
 
     app.get("/api/my-contributions/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await contributionsCollection.find({ email }).toArray();
-      res.send(result);
+      try {
+        const email = req.params.email;
+        const contributions = await contributionsCollection
+          .find({ email })
+          .toArray();
+
+        const result = await Promise.all(
+          contributions.map(async (c) => {
+            let issueTitle = "Unknown Issue";
+            let category = "N/A";
+            let issue = null;
+
+            try {
+              issue = await issuesCollection.findOne({
+                _id: new ObjectId(c.issueId),
+              });
+            } catch {
+
+                issue = await issuesCollection.findOne({ _id: c.issueId });
+            }
+
+            if (issue) {
+              issueTitle = issue.title || "Unknown Issue";
+              category = issue.category || "N/A";
+            }
+
+            return {
+              ...c,
+              issueTitle,
+              category,
+            };
+          })
+        );
+
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Error fetching contributions" });
+      }
     });
 
-    // await db.command({ ping: 1 });
     console.log("✅ MongoDB connection verified!");
-
   } catch (err) {
     console.error("❌ MongoDB Error:", err);
   }
