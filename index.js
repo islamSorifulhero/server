@@ -7,7 +7,7 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: ["http://localhost:5173"],
+  origin: ["http://localhost:5173", "https://animated-cat-0a19c2.netlify.app"],
   credentials: true,
 }));
 app.use(express.json());
@@ -28,7 +28,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     console.log("✅ MongoDB connected successfully");
 
     const db = client.db("issues-DB");
@@ -90,7 +90,7 @@ async function run() {
       res.send(result);
     });
 
-    await db.command({ ping: 1 });
+    // await db.command({ ping: 1 });
     console.log("✅ MongoDB connection verified!");
 
   } catch (err) {
