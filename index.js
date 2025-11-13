@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const PDFDocument = require("pdfkit");
 require("dotenv").config();
 
 const app = express();
@@ -14,10 +15,12 @@ app.use(
 );
 app.use(express.json());
 
+// ------------------ Default Route ------------------
 app.get("/", (req, res) => {
   res.json({ message: "✅ Community Cleanliness Server is Running..." });
 });
 
+// ------------------ MongoDB Setup ------------------
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.maurhd8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -28,6 +31,7 @@ const client = new MongoClient(uri, {
   },
 });
 
+// ------------------ Main Function ------------------
 async function run() {
   try {
     console.log("✅ MongoDB connected successfully");
@@ -35,7 +39,9 @@ async function run() {
     const db = client.db("issues-DB");
     const issuesCollection = db.collection("issues");
     const contributionsCollection = db.collection("contributions");
+    const usersCollection = db.collection("users");
 
+    // ========== Issues Routes ==========
     app.get("/api/issues", async (req, res) => {
       try {
         const limit = parseInt(req.query.limit) || 0;
@@ -45,7 +51,6 @@ async function run() {
           : await cursor.toArray();
         res.send(issues);
       } catch (err) {
-        console.error(err);
         res.status(500).send({ message: "Error fetching issues" });
       }
     });
@@ -59,7 +64,7 @@ async function run() {
         if (!result)
           return res.status(404).send({ message: "Issue not found" });
         res.send(result);
-      } catch (err) {
+      } catch {
         res.status(500).send({ message: "Error fetching issue" });
       }
     });
@@ -90,6 +95,7 @@ async function run() {
       res.send(result);
     });
 
+    // ========== Contributions Routes ==========
     app.post("/api/contributions", async (req, res) => {
       const contribution = req.body;
       contribution.date = new Date();
@@ -121,8 +127,7 @@ async function run() {
                 _id: new ObjectId(c.issueId),
               });
             } catch {
-
-                issue = await issuesCollection.findOne({ _id: c.issueId });
+              issue = await issuesCollection.findOne({ _id: c.issueId });
             }
 
             if (issue) {
@@ -140,8 +145,96 @@ async function run() {
 
         res.send(result);
       } catch (err) {
-        console.error(err);
         res.status(500).send({ message: "Error fetching contributions" });
+      }
+    });
+
+    // ========== PDF Download Route ==========
+    app.get("/api/download-pdf/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const contributions = await contributionsCollection
+          .find({ email })
+          .toArray();
+
+        const result = await Promise.all(
+          contributions.map(async (c) => {
+            let issueTitle = "Unknown Issue";
+            let category = "N/A";
+            let issue = null;
+
+            try {
+              issue = await issuesCollection.findOne({
+                _id: new ObjectId(c.issueId),
+              });
+            } catch {
+              issue = await issuesCollection.findOne({ _id: c.issueId });
+            }
+
+            if (issue) {
+              issueTitle = issue.title || "Unknown Issue";
+              category = issue.category || "N/A";
+            }
+
+            return {
+              ...c,
+              issueTitle,
+              category,
+            };
+          })
+        );
+
+        // Generate PDF
+        const doc = new PDFDocument();
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=my_contributions.pdf"
+        );
+
+        doc.pipe(res);
+        doc.fontSize(20).text("My Contributions Report", { align: "center" });
+        doc.moveDown();
+
+        result.forEach((item, i) => {
+          doc
+            .fontSize(12)
+            .text(`${i + 1}. Issue: ${item.issueTitle}`)
+            .text(`   Category: ${item.category}`)
+            .text(`   Amount: ৳${item.amount}`)
+            .text(
+              `   Date: ${new Date(item.date).toLocaleDateString("en-GB")}`
+            )
+            .moveDown();
+        });
+
+        doc.end();
+      } catch (err) {
+        console.error("PDF Error:", err);
+        res.status(500).send({ message: "Error generating PDF" });
+      }
+    });
+
+    // ========== Community Stats Route ==========
+    app.get("/api/community-stats", async (req, res) => {
+      try {
+        const totalUsers = await usersCollection.estimatedDocumentCount();
+        const totalIssues = await issuesCollection.estimatedDocumentCount();
+
+        const resolvedIssues = await issuesCollection.countDocuments({
+          status: "resolved",
+        });
+        const pendingIssues = totalIssues - resolvedIssues;
+
+        res.send({
+          totalUsers,
+          totalIssues,
+          resolvedIssues,
+          pendingIssues,
+        });
+      } catch (err) {
+        console.error("Stats error:", err);
+        res.status(500).send({ message: "Error fetching community stats" });
       }
     });
 
