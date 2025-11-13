@@ -15,12 +15,10 @@ app.use(
 );
 app.use(express.json());
 
-// ------------------ Default Route ------------------
 app.get("/", (req, res) => {
   res.json({ message: "✅ Community Cleanliness Server is Running..." });
 });
 
-// ------------------ MongoDB Setup ------------------
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.maurhd8.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -31,7 +29,6 @@ const client = new MongoClient(uri, {
   },
 });
 
-// ------------------ Main Function ------------------
 async function run() {
   try {
     console.log("✅ MongoDB connected successfully");
@@ -41,7 +38,6 @@ async function run() {
     const contributionsCollection = db.collection("contributions");
     const usersCollection = db.collection("users");
 
-    // ========== Issues Routes ==========
     app.get("/api/issues", async (req, res) => {
       try {
         const limit = parseInt(req.query.limit) || 0;
@@ -95,7 +91,6 @@ async function run() {
       res.send(result);
     });
 
-    // ========== Contributions Routes ==========
     app.post("/api/contributions", async (req, res) => {
       const contribution = req.body;
       contribution.date = new Date();
@@ -149,7 +144,6 @@ async function run() {
       }
     });
 
-    // ========== PDF Download Route ==========
     app.get("/api/download-pdf/:email", async (req, res) => {
       try {
         const email = req.params.email;
@@ -184,7 +178,6 @@ async function run() {
           })
         );
 
-        // Generate PDF
         const doc = new PDFDocument();
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader(
@@ -215,7 +208,6 @@ async function run() {
       }
     });
 
-    // ========== Community Stats Route ==========
     app.get("/api/community-stats", async (req, res) => {
       try {
         const totalUsers = await usersCollection.estimatedDocumentCount();
